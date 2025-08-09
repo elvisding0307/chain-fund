@@ -26,9 +26,7 @@
 
 ### 3. 众筹结果处理
 
-**成功条件**：截止时间前达到目标金额且未超最大人数，项目创建者可提取全部筹集资金
-
-**失败条件**：截止时间未达目标金额或提前达最大人数但未达金额
+时间截止后，项目创建者可提取全部已筹集到的资金。
 
 ### 4. 项目管理与浏览
 
@@ -41,8 +39,6 @@
 ### 5. 用户中心
 
 *   展示用户创建的所有项目及状态
-
-*   展示用户投资的所有项目及退款状态
 
 *   提供投资记录查询功能
 
@@ -143,179 +139,6 @@ API层 (Next.js API Routes)
     ├─ 区块链 (Sepolia) - 存储合约数据与交易记录
     └─ MySQL - 存储项目元数据与扩展信息
 ```
-
-## 智能合约设计
-
-### 1. 核心合约结构
-
-**CrowdfundingFactory（工厂合约）**
-
-*   功能：创建众筹项目合约，管理所有项目
-
-*   核心函数：
-
-```
-// 创建新项目并返回合约地址
-function createProject(
-    string memory name,
-    string memory description,
-    uint256 targetAmount,
-    uint256 durationDays,
-    uint256 maxParticipants
-) external returns (address);
-
-// 获取所有项目列表
-function getAllProjects() external view returns (Project\[] memory);
-```
-
-**Crowdfunding（项目合约）**
-
-*   功能：处理单个项目的投资、提款、退款逻辑
-
-*   核心状态变量：
-
-```
-address public immutable creator;          // 项目创建者
-string public name;                        // 项目名称
-string public description;                 // 项目描述
-uint256 public immutable targetAmount;     // 目标金额(wei)
-uint256 public immutable endTime;          // 结束时间(timestamp)
-uint256 public immutable maxParticipants;  // 最大参与人数
-uint256 public currentAmount;              // 当前筹集金额
-uint256 public participantsCount;          // 当前参与人数
-bool public fundsWithdrawn;                // 资金是否已提取
-mapping(address => uint256) public investments;  // 投资者及金额
-mapping(address => bool) public hasRefunded;     // 记录是否已退款
-```
-
-*   核心函数：
-
-```
-// 投资项目
-function invest() external payable;
-// 项目创建者提取资金
-function withdrawFunds() external;
-// 投资者申请退款
-function refund() external;
-// 获取项目详情
-function getProjectDetails() external view returns (ProjectDetails memory);
-```
-
-### 2. 关键业务逻辑
-
-**投资逻辑**：
-
-```
-// 检查项目是否在众筹期内
-// 检查投资者未参与过该项目
-// 检查未超过最大参与人数
-// 检查投资金额>0
-// 更新当前金额和参与人数
-// 记录投资者信息
-// 触发Investment事件
-```
-
-**提款逻辑**：
-
-```
-// 检查调用者为项目创建者
-// 检查项目已结束且达到目标金额
-// 检查资金未提取过
-// 转账给创建者
-// 更新资金提取状态
-// 触发FundsWithdrawn事件
-```
-
-**退款逻辑**：
-
-```
-// 检查项目已结束且未达到目标金额
-// 检查调用者为投资者且有投资记录
-// 检查未退款过
-// 转账给投资者
-// 更新退款状态
-// 触发Refund事件
-```
-
-## 数据库设计（MySQL）
-
-使用 Prisma 定义数据模型：
-
-```
-// 项目元数据表
-model Project {
-    id              String    @id @default(uuid())
-    contractAddress String    @unique  // 对应链上合约地址
-    creatorAddress  String             // 创建者钱包地址
-    name            String
-    description     String
-    targetAmount    String             // 以wei为单位的字符串
-    durationDays    Int
-    maxParticipants Int
-    createdAt       DateTime  @default(now())
-    updatedAt       DateTime  @updatedAt
-    investments     Investment\[]
-}
-
-// 投资记录补充表
-model Investment {
-    id              String    @id @default(uuid())
-    projectId       String
-    investorAddress String
-    amount          String             // 以wei为单位的字符串
-    transactionHash String    @unique
-    createdAt       DateTime  @default(now())
-    project         Project   @relation(fields: \[projectId], references: \[id], onDelete: Cascade)
-
-    @@unique(\[projectId, investorAddress])
-}
-```
-
-## 前端页面结构
-
-### 1. 公共页面
-
-*   **首页**：
-
-
-    *   项目列表（Ant Design 的 Card 和 List 组件）
-    *   项目筛选（Ant Design 的 Select 和 Radio 组件）
-    *   钱包连接按钮（RainbowKit 组件）
-    *   快捷创建项目入口
-
-*   **项目详情页**：
-
-
-    *   项目基本信息（Ant Design 的 Typography 组件）
-    *   进度展示（Ant Design 的 Progress 和 Statistic 组件）
-    *   倒计时（Ant Design 的 Countdown 组件）
-    *   投资表单（Ant Design 的 InputNumber 和 Button 组件）
-    *   操作按钮（根据状态动态显示）
-    *   投资记录列表（Ant Design 的 Table 组件）
-
-*   **创建项目页**：
-
-
-    *   表单（Ant Design 的 Form 组件，包含 Input、TextArea、InputNumber 等）
-    *   表单验证与提交按钮
-    *   提示信息（Ant Design 的 Alert 组件）
-
-### 2. 用户中心
-
-*   **我的项目**：
-
-
-    *   创建的项目列表（Ant Design 的 Table 组件）
-    *   项目状态标签（Ant Design 的 Tag 组件）
-    *   操作按钮（提款等）
-
-*   **我的投资**：
-
-
-    *   投资的项目列表
-    *   投资金额与状态
-    *   退款按钮（如适用）
-
 ## 开发计划（10 个工作日）
 
 ### 第 1 天：环境搭建与设计

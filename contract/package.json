@@ -1,0 +1,24 @@
+{
+  "name": "chain-fund-contract",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx hardhat test",
+    "compile": "npx hardhat compile",
+    "deploy:local": "npx hardhat run scripts/deploy.ts --network hardhat",
+    "deploy:sepolia": "npx hardhat run scripts/deploy.ts --network sepolia",
+    "verify:contract": "npx hardhat run scripts/verify.ts --network sepolia",
+    "verify:etherscan": "echo 'Please run: npx hardhat verify --network sepolia <CONTRACT_ADDRESS>'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "hardhat": "^2.26.1"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1"
+  }
+}
